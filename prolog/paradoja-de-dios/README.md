@@ -1,80 +1,60 @@
 # Paradoja de Dios
 
-Práctica de Inteligencia Artificial en Prolog. Son dos ejercicios en el mismo
-archivo:Ejercicios de `member/2` y `append/3`, y un diálogo interactivo sobre
-el problema clásico de la omnipotencia, la omnisciencia y la bondad de Dios.
+## A. Titulo del Proyecto y Resumen Ejecutivo
 
-## Contenido del archivo
+Paradoja de Dios es una practica de Inteligencia Artificial en Prolog que incluye ejercicios de manipulacion de listas con los predicados member/2 y append/3, junto con un dialogo logico por consola sobre el problema del mal. El sistema analiza conceptos de omnisciencia, omnipotencia y libre albedrio en función de las respuestas del usuario. Su alcance tecnologico se limita a la ejecucion local en SWI-Prolog, sin componentes de red, base de datos ni interfaz grafica.
 
-`listasmemberyappend.pl` tiene tres bloques:
+## B. Arquitectura del Sistema
 
-### 1. Member
+El programa sigue una arquitectura de programacion logica con ejecucion secuencial. El flujo comienza con la ejecucion de 20 ejercicios de manipulacion de listas utilizando member/2 y append/3 sobre listas anidadas y tipos mezclados. Posteriormente, se inicia un dialogo logico por consola donde el usuario responde preguntas relacionadas con el problema del mal, la omnisciencia, la omnipotencia y el libre albedrio. El motor de unificacion de Prolog procesa las respuestas y genera conclusiones condicionales segun la logica implementada. No existe arquitectura cliente-servidor ni capas de persistencia; todo ocurre en memoria durante la ejecucion.
 
-Diez combinaciones de `member/2` para comprobar que la búsqueda recorre tanto
-listas de números como listas anidadas con variables al final:
+## C. Caracteristicas Tecnicas Clave
 
-```prolog
-miembro5(X) :- member(X, [[a,5,c],[e,[o|3]]]).
-```
+- 20 ejercicios de manipulacion de listas con los predicados member/2 y append/3.
+- Soporte para listas anidadas y tipos mezclados.
+- Dialogo logico por consola sobre el problema del mal.
+- Razonamiento logico con conclusiones condicionales segun las respuestas del usuario.
+- Motor de unificacion y busqueda con backtracking caracteristico de Prolog.
+- No utiliza base de datos, ni concurrencia, ni procesamiento en tiempo real, ni protocolos de red.
+- Seguridad limitada al ambito de ejecucion local; no maneja datos sensibles ni autenticacion.
 
-### 2. Append
+## D. Especificacion del Stack Tecnologico
 
-Diez combinaciones de `append/3`, incluidas listas aplanadas, listas anidadas y
-valores mezclados:
+| Categoria | Tecnologia / Librería |
+|-----------|----------------------|
+| Lenguaje | SWI-Prolog 8.x |
+| Paradigma | Programacion logica, manipulacion de listas, razonamiento logico |
+| Entorno | SWI-Prolog 8.x |
 
-```prolog
-unif10(X) :- append([a,b,c],[[4,5,6,78,9],["ozuna","mistico"]], X).
-```
+## E. Guia de Instalacion, Configuracion y Despliegue
 
-### 3. El diálogo
+### Requisitos previos del sistema
 
-`iniciar/0` va encadenando preguntas con `read/1` y va deduciendo una
-conclusión según las respuestas:
+- SWI-Prolog 8.x instalado en el sistema operativo.
+- Acceso a terminal o consola de comandos.
 
-```prolog
-iniciar :-
-    write('¿El mal existe? (si/no): '),
-    read(R1),
-    flujo([R1]).
-```
-
-La cadena de deductores va así:
-
-```
-flujo        ¿el mal existe?
-flujo_mal_sabe    ¿Dios sabe que el mal existe?
-flujo_puede  ¿Dios puede acabar con el mal?
-flujo_quiere ¿Dios quiere acabar con el mal?
-fluo_razon   ¿por qué existe el mal?  (libre_arbitrio / diablo / probar)
-flujo_libre  final según la respuesta
-```
-
-Al llegar a la última rama dice que Dios limitó su propia omnipotencia para
-permitir el libre albedrío.
-
-## Cómo ejecutarlo
-
-Hace falta [SWI-Prolog](https://www.swi-prolog.org/) (Windows, Linux o macOS).
+### Secuencia de comandos para clonacion e instalacion
 
 ```bash
-swipl listasmemberyappend.pl
+git clone https://github.com/Matthew-Garay/ParadojadeDios.git
+cd ParadojadeDios
 ```
 
-Y dentro del intérprete:
+### Configuracion de variables de entorno
 
-```prolog
-?- iniciar.
+Este proyecto no requiere archivo .env ni variables de entorno.
+
+### Comandos para ejecucion en entorno de Desarrollo
+
+```bash
+swipl -s listasmemberyappend.pl -g "main" -t "halt"
 ```
 
-También se pueden probar los predicados sueltos sin arrancar el diálogo:
+### Comandos para ejecucion en entorno de Produccion
 
-```prolog
-?- miembro5(X).
-?- unif8(X).
-```
+No aplica entorno de produccion separado; el programa se ejecuta localmente con el mismo comando de desarrollo.
 
-## Nota sobre la codificación
+## F. Creditos de Autoría
 
-El archivo está guardado en **UTF-8 sin BOM**. Venía en Windows-1252, donde los
-signos `¿` y las vocales acentuadas ocupaban un byte cada uno y Prolog los leía
-como caracteres inválidos.
+Desarrollado por: Matthew Ilveneff Garay Pérez
+Correo Electronico: 1911.garay.perez@gmail.com
