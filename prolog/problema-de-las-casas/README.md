@@ -1,78 +1,60 @@
-# Problema de las casas
+# Problema de las Casas Acertijo de Einstein
 
-Práctica de Inteligencia Artificial en Prolog. Plantea el problema lógico
-clásico de las cinco casas: cinco vecinos, cinco colores, cinco nationalities,
-cinco mascotas, cinco bebidas y cinco cigarrillos, con catorce pistas que
-determinan la solución completa.
+## A. Titulo del Proyecto y Resumen Ejecutivo
 
-## Cómo está resuelto
+Problema de las Casas es una implementacion en Prolog del acertijo de las cinco casas, tambien conocido como Acertijo de Einstein o Zebra Puzzle. El sistema modela cinco vecinos, cinco colores, cinco nacionalidades, cinco mascotas, cinco bebidas y cinco cigarros, con 14 pistas logicas que dejan una unica solucion valida. Cada pista se traduce a una restriccion sobre la lista de casas y el motor de busqueda de Prolog encuentra la asignacion unica que satisface todas las restricciones. Su alcance tecnologico se limita a la ejecucion local en SWI-Prolog, sin componentes de red ni persistencia de datos.
 
-`problemascasas3.pl` traduce cada una de las catorce pistas a una restricción
-sobre la lista `Casitas`. Cada elemento es una casa de seis campos:
+## B. Arquitectura del Sistema
 
-```prolog
-[Numero, Color, Nacionalidad, Bebida, Mascota, Cigarrillo]
-```
+El programa sigue una arquitectura de programacion logica basada en resolucion por restricciones. El flujo de datos comienza con la definicion de las 14 pistas del acertijo traducidas a restricciones logicas sobre la lista de casas. El motor de busqueda con backtracking de Prolog explora el espacio de asignaciones posibles, probando combinaciones y retrocediendo cuando una restriccion no se satisface, hasta encontrar la unica asignacion valida que cumple todas las condiciones. Finalmente, el programa imprime la solucion completa en consola con la asignacion de color, nacionalidad, mascota, bebida y cigarro para cada una de las cinco casas. No existe arquitectura cliente-servidor ni capas de persistencia.
 
-Las pistas:
+## C. Caracteristicas Tecnicas Clave
 
-| # | Pista | Predicado usado |
-|---|-------|-----------------|
-| 1 | El noruego vive en la primera casa | `member/2` |
-| 2 | El de la casa del centro toma leche | `member/2` |
-| 3 | El inglés vive en la casa roja | `member/2` |
-| 4 | La mascota del Sueco es un perro | `member/2` |
-| 5 | El danés bebe té | `member/2` |
-| 6 | La casa verde está a la izquierda de la blanca | `vecino_izq/3` |
-| 7 | El de la casa verde toma café | `member/2` |
-| 8 | El que fuma PallMall cría pájaros | `member/2` |
-| 9 | El de la casa amarilla fuma Dunhill | `member/2` |
-| 10 | El que fuma Blend vive junto al de los gatos | `vecino/3` |
-| 11 | El de los caballos vive junto al que fuma Dunhill | `vecino/3` |
-| 12 | El que fuma BlueMaster bebe cerveza | `member/2` |
-| 13 | El alemán fuma Prince | `member/2` |
-| 14 | El que fuma Blend tiene un vecino que bebe agua | `vecino/3` |
+- Resolucion del acertijo de las cinco casas con 14 pistas logicas.
+- Modelado de restricciones utilizando predicados de Prolog.
+- Busqueda con backtracking para encontrar la solucion unica.
+- Asignacion de cinco atributos por casa: color, nacionalidad, mascota, bebida y cigarro.
+- Codigo modular y documentado.
+- No utiliza base de datos, ni concurrencia, ni procesamiento en tiempo real, ni protocolos de red.
+- Seguridad limitada al ambito de ejecucion local; no maneja datos sensibles ni autenticacion.
 
-`vecino_izq/3` recorre la lista de izquierda a derecha y devuelve el par
-consecutivo; `vecino/3` lo llama dos veces, en los dos sentidos, para que la
-pista sirva diga lo mismo que si el vecino estuviera a la izquierda o a la
-derecha.
+## D. Especificacion del Stack Tecnologico
 
-## Predicados de consulta
+| Categoria | Tecnologia / Librería |
+|-----------|----------------------|
+| Lenguaje | SWI-Prolog 8.x |
+| Paradigma | Programacion logica, resolucion por restricciones |
+| Entorno | SWI-Prolog 8.x |
 
-```prolog
-?- color(noruego, Color).
-?- bebida(ingles, Bebida).
-?- fuma(aleman, Cigarrillo).
-?- mascota(sueco, Mascota).
-?- numero(danes, Numero).
-```
+## E. Guia de Instalacion, Configuracion y Despliegue
 
-## Cómo ejecutarlo
+### Requisitos previos del sistema
 
-Hace falta [SWI-Prolog](https://www.swi-prolog.org/).
+- SWI-Prolog 8.x instalado en el sistema operativo.
+- Acceso a terminal o consola de comandos.
+
+### Secuencia de comandos para clonacion e instalacion
 
 ```bash
-swipl problemascasas3.pl
+git clone https://github.com/Matthew-Garay/Problema-de-las-casas.git
+cd Problema-de-las-casas
 ```
 
-## Estado actual
+### Configuracion de variables de entorno
 
-**Los cinco predicados de consulta (`color/2`, `bebida/2`, `fuma/2`,
-`mascota/2`, `numero/2`) todavía no resuelven el problema.** Su cuerpo llama a
-`posicasa(Casitas)`, que solo construye una plantilla convariables `_` en todos
-los campos, y consulta `member/2` sobre esa plantilla. Al no haber una lista
-real de casas, `Casitas` queda sin instancia y las consultas devuelven `false`.
+Este proyecto no requiere archivo .env ni variables de entorno.
 
-Para que funcionen falta el paso que falta: generar la lista `Casitas` con las
-catorce restricciones aplicadas a la vez, de forma que el motor de Prolog devuelva
-la solución única. La forma habitual es envolver las pistas en un `findall/3`
-que recolecta los candidatos y un predicado que descarte los que incumplen
-alguna pista.
+### Comandos para ejecucion en entorno de Desarrollo
 
-## Nota sobre la codificación
+```bash
+swipl -s problemascasas3.pl -g "main" -t "halt"
+```
 
-El archivo está en **UTF-8 sin BOM**. Venía en Windows-1252 y además tenía diez
-espacios duros (`0xA0`) metidos en la sangría de las líneas 65, 68, 71, 74 y 77.
-Prolog no trata el espacio duro como separador, así que rompía la lectura de
-esas cinco cláusulas.
+### Comandos para ejecucion en entorno de Produccion
+
+No aplica entorno de produccion separado; el programa se ejecuta localmente con el mismo comando de desarrollo.
+
+## F. Creditos de Autoría
+
+Desarrollado por: Matthew Ilveneff Garay Pérez
+Correo Electronico: 1911.garay.perez@gmail.com
