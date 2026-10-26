@@ -1,81 +1,67 @@
-# Modelos de regresión
+# Modelos de Regresion Random Forest vs Arbol de Decision
 
-Práctica de Inteligencia Artificial en R. Compara dos formas de predecir el
-sueldo: un **Random Forest** y un **árbol de regresión**, sobre dos datasets
-distintos.
+## A. Titulo del Proyecto y Resumen Ejecutivo
 
-## Los dos scripts
+Modelos de Regresion: Random Forest vs Arbol de Decision es una practica de Inteligencia Artificial en R que compara dos tecnicas para predecir el sueldo: un Random Forest y un arbol de regresion (rpart), cada uno con su propio dataset. El problema que resuelve es contrastar el comportamiento y la interpretabilidad de ambos algoritmos de ensamble y particion recursiva para la estimacion de sueldos. Su alcance tecnologico se limita al analisis predictivo local en R, sin componente de servidor ni persistencia de datos.
 
-Son dos ejercicios separados, cada uno con su dataset.
+## B. Arquitectura del Sistema
 
-### `P15.R` — Salary_Data.csv
+El programa sigue una arquitectura de scripts independientes en R. Existen dos puntos de entrada separados: P15.R modela el sueldo segun los anos de experiencia utilizando el dataset Salary_Data.csv, aplicando Random Forest y arbol de decision; RandomForest.r modela el sueldo segun el nivel del empleado utilizando el dataset Position_salaries.csv, aplicando Random Forest. Cada script carga su dataset, entrena el modelo correspondiente, genera predicciones de ejemplo y visualiza los resultados con ggplot2 y rpart.plot. No existe comunicacion entre los scripts ni arquitectura cliente-servidor; todo el procesamiento ocurre de forma aislada en cada ejecucion.
 
-Ajusta el mismo objetivo, `Salary ~ YearsExperience`, con los dos métodos:
+## C. Caracteristicas Tecnicas Clave
 
-```r
-regression = randomForest(Salary ~ YearsExperience, data = dataset, ntree = 500)
-regression1 = rpart(formula = Salary ~ ., data = dataset2,
-                    control = rpart.control(minsplit = 10))
+- Random Forest con 500 arboles (ntree = 500) sobre dos datasets distintos.
+- Arbol de regresion con rpart y visualizacion con rpart.plot.
+- Predicciones de ejemplo, por ejemplo sueldo con 6.5 anos de experiencia.
+- Visualizacion de curvas ajustadas con ggplot2 sobre una malla fina.
+- Dos datasets: Salary_Data.csv (anos de experiencia) y Position_salaries.csv (nivel del empleado).
+- No utiliza base de datos, ni concurrencia, ni procesamiento en tiempo real, ni protocolos de red.
+- Seguridad limitada al ambito de ejecucion local; no maneja datos sensibles ni autenticacion.
+
+## D. Especificacion del Stack Tecnologico
+
+| Categoria | Tecnologia / Librería |
+|-----------|----------------------|
+| Lenguaje | R |
+| Paquetes | randomForest, rpart, rpart.plot, ggplot2 |
+| Datasets | Salary_Data.csv, Position_salaries.csv |
+| Analisis | Random Forest, arbol de decision, regresion |
+
+## E. Guia de Instalacion, Configuracion y Despliegue
+
+### Requisitos previos del sistema
+
+- R o RStudio instalado en el sistema operativo.
+- Paquetes randomForest, rpart, rpart.plot y ggplot2 instalados en R.
+
+### Secuencia de comandos para clonacion e instalacion
+
+```bash
+git clone https://github.com/Matthew-Garay/ModelosdeRegresion.git
+cd ModelosdeRegresion
 ```
 
-`rpart` se limita con `minsplit = 10` para que el árbol no se quede con un solo
-nodo por hoja, que es el comportamiento por defecto cuando el dataset es
-pequeño.
+### Configuracion de variables de entorno
 
-El gráfico se hace sobre una malla `x_grid` de 0.01 en 0.01, no sobre los datos
-originales, para que la curva ajustada quede continua.
+Este proyecto no requiere archivo .env ni variables de entorno.
 
-### `RandomForest.r` — Position_salaries.csv
-
-Mismo modelo, otro dataset: aquí la variable independiente es el **nivel** del
-empleado, no los años de experiencia. El script corta las columnas que no le
-sirven:
+### Comandos para ejecucion en entorno de Desarrollo
 
 ```r
-dataset = read.csv('Position_salaries.csv')
-dataset = dataset[, 2:3]   # se queda con Level y Salary
+install.packages(c("randomForest", "rpart", "rpart.plot", "ggplot2"))
 ```
-
-Trae comentado el código de `caTools` para particionar en entrenamiento y test,
-a propósito: con 30 observaciones, partir el dataset deja muy pocas filas con
-las que entrenar.
-
-## Comparar los dos
-
-| | Random Forest | Árbol (`rpart`) |
-|---|---|---|
-| Modelo | conjunto de 500 árboles | un solo árbol |
-| Interpretación | `importance()` | `rpart.plot()` |
-| Con estos datos | ajusta con más exactitud | más fácil de explicar |
-
-La conclusión del ejercicio es que, con tan pocas observaciones y una relación
-casi lineal entre nivel y sueldo, el árbol de decisión ya resuelve el problema y
-se entiende de un vistazo. El Random Forest no aporta nada aquí.
-
-## Cómo ejecutarlo
 
 ```r
 source("P15.R")
 source("RandomForest.r")
 ```
 
-## Paquetes
+### Comandos para ejecucion en entorno de Produccion
 
-| Paquete | Para qué |
-|---------|----------|
-| `randomForest` | el bosque aleatorio |
-| `rpart` | el árbol de regresión |
-| `rpart.plot` | dibujar el árbol |
-| `ggplot2` | los gráficos de la curva ajustada |
+No aplica entorno de produccion separado; los scripts se ejecutan localmente con el mismo comando de desarrollo.
 
-```r
-install.packages(c("randomForest", "rpart", "rpart.plot", "ggplot2"))
-```
+## F. Creditos de Autoría
 
-## Correcciones aplicadas
+Desarrollado por: Matthew Ilveneff Garay Pérez
+Correo Electronico: 1911.garay.perez@gmail.com
 
-- **`RandomForest.r` pedía `Position_Salaries.csv` con S mayúscula**, pero el
-  archivo del repo se llama `Position_salaries.csv`. En Windows funcionaba
-  porque el sistema no distingue mayúsculas; en Linux o macOS el `read.csv`
-  fallaba. Ahora el nombre coincide.
-- Se añadió un `.gitignore` para `Rhistory`, `.RData` y `.Rproj.user/`.
