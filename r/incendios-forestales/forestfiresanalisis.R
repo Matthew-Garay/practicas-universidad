@@ -1,233 +1,276 @@
+# ============================================================================
+# forestfiresanalisis.R - Analitica de Incendios Forestales con Machine Learning
+# Refactorizado: eliminacion de install.packages(), modularizacion de graficos,
+# paleta de colores neutra y titulos sin emojis.
+# ============================================================================
 
-#Región: Parque Natural de Montesinho, Zona oreste de Portugal
-# Leer el dataset
-forestfires <- read.csv("forestfires.csv")
-set.seed(123)
-print(forestfires)
-cat("Dimensiones del dataset ForestFires:", dim(forestfires), "\n")
-summary(forestfires)
-
-#Librerias usadas
-if (!require(ggplot2)) install.packages("ggplot2")
+# ----------------------------------------------------------------------------
+# Carga de paquetes (deben estar instalados previamente; ver README)
+# ----------------------------------------------------------------------------
 library(ggplot2)
-
-if (!require(dplyr)) install.packages("dplyr")
 library(dplyr)
-
-if (!require(rpart)) install.packages("rpart")
 library(rpart)
-
-if (!require(e1071)) install.packages("e1071")
 library(e1071)
-
-if (!require(rpart.plot)) install.packages("rpart.plot")
 library(rpart.plot)
-
-if (!require(randomForest)) install.packages("randomForest")
 library(randomForest)
 
-#Grafico de barras mes vs area quemada 
+# ----------------------------------------------------------------------------
+# Validacion y carga del dataset
+# ----------------------------------------------------------------------------
+archivo_csv <- "forestfires.csv"
+
+if (!file.exists(archivo_csv)) {
+    stop("No se encontro el archivo: ", archivo_csv)
+}
+
+forestfires <- read.csv(archivo_csv)
+set.seed(123)
+
+cat("=== Analitica de Incendios Forestales - Montesinho, Portugal ===\n", sep = "")
+cat("Dimensiones del dataset ForestFires:", dim(forestfires), "\n\n")
+print(summary(forestfires))
+
+# ----------------------------------------------------------------------------
+# Funcion: graficar_dispersion_regresion
+# Dibuja puntos + linea de prediccion con estilo limpio: paleta neutra,
+# tema minimal y sin colores saturados.
+# ----------------------------------------------------------------------------
+graficar_dispersion_regresion <- function(datos, x_var, y_var, modelo,
+                                          titulo, etiqueta_x, etiqueta_y,
+                                          color_puntos = "#2C3E50",
+                                          color_linea = "#7F8C8D") {
+    ggplot() +
+        geom_point(aes(x = datos[[x_var]], y = datos[[y_var]]),
+                   colour = color_puntos) +
+        geom_line(aes(x = datos[[x_var]], y = predict(modelo, newdata = datos)),
+                  colour = color_linea) +
+        ggtitle(titulo) +
+        xlab(etiqueta_x) +
+        ylab(etiqueta_y) +
+        theme_minimal(base_size = 12) +
+        theme(
+            plot.title = element_text(face = "bold", size = 14, margin = margin(b = 12)),
+            axis.title = element_text(size = 11, margin = margin(t = 8)),
+            panel.grid.minor = element_blank()
+        )
+}
+
+# ----------------------------------------------------------------------------
+# Analisis exploratorio: area quemada por mes
+# ----------------------------------------------------------------------------
 area_por_mes <- forestfires %>%
-  group_by(month) %>%
-  summarise(area_total = sum(area)) %>%
-  arrange(desc(area_total))
+    group_by(month) %>%
+    summarise(area_total = sum(area)) %>%
+    arrange(desc(area_total))
 
-library(ggplot2)
 ggplot(area_por_mes, aes(x = reorder(month, -area_total), y = area_total)) +
-  geom_bar(stat = "identity", fill = "blue") +
-  labs(title = "Total de área quemada por mes",
-       x = "Mes del año",
-       y = "Área quemada total (hectáreas)") +
-  theme_minimal()
+    geom_bar(stat = "identity", fill = "#2C3E50") +
+    labs(title = "Total de area quemada por mes",
+         x = "Mes del ano",
+         y = "Area quemada total (hectareas)") +
+    theme_minimal() +
+    theme(
+        plot.title = element_text(face = "bold", size = 14, margin = margin(b = 12)),
+        axis.title = element_text(size = 11),
+        panel.grid.minor = element_blank()
+    )
 
-#En Portugal, los meses de julio, agosto y septiembre son los más calurosos al ser verano asi como vacaciones. 
-#El calor seco o poca humedad favorece la inflamabilidad de la vegetación.
-#Agosto se pondria por encima pero en ese mes hubo llovio ciertos dias
+cat("\nFrecuencia de incendios por mes:\n")
+print(table(forestfires$month))
 
-#Frecuencia de incendios por mes
-table(forestfires$month) #los meses de agostos,septimebre y marzo hubo mas frecuencias de incendios
+cat("\nFrecuencia de incendios por dia:\n")
+print(table(forestfires$day))
 
-#Frecuencia de incendios por dias
-table(forestfires$day)   #Los Viernes Sabados y domingos hubo mucha frecuencia de incendios
+# ----------------------------------------------------------------------------
+# Analisis: Temperatura y Viento
+# ----------------------------------------------------------------------------
+multi_reg_temp_wind <- lm(temp ~ FFMC + DMC + DC + ISI + RH + wind + area,
+                          data = forestfires)
+cat("\n--- Regresion Lineal Multiple: temp ~ variables meteorologicas ---\n")
+print(summary(multi_reg_temp_wind))
 
+grafico_temp_wind <- graficar_dispersion_regresion(
+    datos = forestfires,
+    x_var = "wind",
+    y_var = "temp",
+    modelo = multi_reg_temp_wind,
+    titulo = "Temperatura vs Viento",
+    etiqueta_x = "Viento",
+    etiqueta_y = "Temperatura"
+)
+print(grafico_temp_wind)
 
+# Transformaciones polinomiales del viento
+forestfires$wind2 <- forestfires$wind^2
+forestfires$wind3 <- forestfires$wind^3
+forestfires$wind4 <- forestfires$wind^4
 
-#Temperatura y viento
-# Modelo Regresion lineal múltiple
-multi_reg <- lm(temp ~ FFMC+DMC+DC+ISI+RH+wind+area, data = forestfires)
-summary(multi_reg)
-ggplot() +
-  geom_point(aes(x = forestfires$wind, y = forestfires$temp), colour = "red") +
-  geom_line(aes(x = forestfires$wind,
-                y = predict(multi_reg, newdata = forestfires)), colour = "blue") +
-  ggtitle("¿Qué pasa si hay alta temperatura y alto viento?🔥") +
-  xlab("Viento") +
-  ylab("Temperatura")
+# ----------------------------------------------------------------------------
+# Maquinas de vectores de soporte (SVM): temp ~ wind
+# ----------------------------------------------------------------------------
+svm_radial_temp_wind <- svm(temp ~ wind, data = forestfires,
+                            type = "eps-regression", kernel = "radial")
+cat("\n--- SVM (kernel radial): temp ~ wind ---\n")
+print(summary(svm_radial_temp_wind))
 
+svm_sigmoid_temp_wind <- svm(temp ~ wind, data = forestfires,
+                             type = "eps-regression", kernel = "sigmoid")
+cat("\n--- SVM (kernel sigmoid): temp ~ wind ---\n")
+print(summary(svm_sigmoid_temp_wind))
 
-forestfires$wind2= forestfires$wind^2
-forestfires$wind3= forestfires$wind^3
-forestfires$wind4= forestfires$wind^4
+# ----------------------------------------------------------------------------
+# Random Forest: temp ~ wind
+# ----------------------------------------------------------------------------
+rf_temp_wind <- randomForest(temp ~ wind, data = forestfires, ntree = 500)
+cat("\n--- Random Forest: temp ~ wind ---\n")
+print(rf_temp_wind)
+plot(rf_temp_wind, main = "Random Forest: temp ~ wind")
 
-poly_reg <- lm (formula= temp~.,data=forestfires)
+# ----------------------------------------------------------------------------
+# Arbol de decision: log(area + 1) ~ temp + wind
+# ----------------------------------------------------------------------------
+arbol_temp_wind <- rpart(log(area + 1) ~ temp + wind,
+                         data = forestfires, method = "anova")
+cat("\n--- Arbol de decision: log(area + 1) ~ temp + wind ---\n")
+print(summary(arbol_temp_wind))
+rpart.plot(arbol_temp_wind, main = "Propagacion segun temperatura y viento")
 
-# Modelo Regresion lineal múltiple
-multi_reg <- lm(temp ~ FFMC+DMC+DC+ISI+RH+wind+area, data = forestfires)
-summary(multi_reg)
-ggplot() +
-  geom_point(aes(x = forestfires$wind, y = forestfires$temp), colour = "red") +
-  geom_line(aes(x = forestfires$wind,
-                y = predict(poly_reg, newdata = forestfires)), colour = "blue") +
-  ggtitle("¿Qué pasa si hay alta temperatura y alto viento?🔥") +
-  xlab("Viento") +
-  ylab("Temperatura")
+# ----------------------------------------------------------------------------
+# Analisis: Temperatura y Humedad (RH)
+# ----------------------------------------------------------------------------
+multi_reg_temp_rh <- lm(temp ~ FFMC + DMC + DC + ISI + RH + wind + area,
+                        data = forestfires)
+cat("\n--- Regresion Lineal Multiple: temp ~ variables meteorologicas ---\n")
+print(summary(multi_reg_temp_rh))
 
-#Si temp baja pero viento alto, puede haber propagación rápida aunque el fuego inicial sea menor.
-#Si temp alta pero viento bajo, puede haber incendio pero con menor propagación.
+grafico_temp_rh <- graficar_dispersion_regresion(
+    datos = forestfires,
+    x_var = "RH",
+    y_var = "temp",
+    modelo = multi_reg_temp_rh,
+    titulo = "Temperatura vs Humedad Relativa",
+    etiqueta_x = "Humedad Relativa",
+    etiqueta_y = "Temperatura"
+)
+print(grafico_temp_rh)
 
-#Maquina de vectores de soporte
-regression1 <- svm(formula = temp ~ wind,
-                   data = forestfires,
-                   type = "eps-regression",  
-                   kernel = "radial")        
-summary(regression1) #478 vectores de soporte
+# ----------------------------------------------------------------------------
+# Maquinas de vectores de soporte (SVM): temp ~ RH
+# ----------------------------------------------------------------------------
+svm_radial_temp_rh <- svm(temp ~ RH, data = forestfires,
+                          type = "eps-regression", kernel = "radial")
+cat("\n--- SVM (kernel radial): temp ~ RH ---\n")
+print(summary(svm_radial_temp_rh))
 
+svm_sigmoid_temp_rh <- svm(temp ~ RH, data = forestfires,
+                           type = "eps-regression", kernel = "sigmoid")
+cat("\n--- SVM (kernel sigmoid): temp ~ RH ---\n")
+print(summary(svm_sigmoid_temp_rh))
 
-regression3 <- svm(formula = temp ~ wind,
-                   data = forestfires,
-                   type = "eps-regression",  
-                   kernel = "sigmoid")        
-summary(regression3)#514 vectores de soporte 
-#Por la cantidad de cosas que intercatuan en los datos 
+# ----------------------------------------------------------------------------
+# Random Forest: temp ~ RH
+# ----------------------------------------------------------------------------
+rf_temp_rh <- randomForest(temp ~ RH, data = forestfires, ntree = 500)
+cat("\n--- Random Forest: temp ~ RH ---\n")
+print(rf_temp_rh)
+plot(rf_temp_rh, main = "Random Forest: temp ~ RH")
 
-# Random Forest
-regression1 = randomForest(temp ~ wind,
-                          data = forestfires,  # Especificar el dataset completo
-                          ntree = 500)
-plot(regression1)
+# ----------------------------------------------------------------------------
+# Arbol de decision: log(area + 1) ~ RH + temp
+# ----------------------------------------------------------------------------
+arbol_temp_rh <- rpart(log(area + 1) ~ RH + temp,
+                       data = forestfires, method = "anova")
+cat("\n--- Arbol de decision: log(area + 1) ~ RH + temp ---\n")
+print(summary(arbol_temp_rh))
+rpart.plot(arbol_temp_rh, main = "Propagacion segun temperatura y humedad")
 
-#arboles de desicion
-modelo_temp_wind <- rpart(log(area + 1) ~ temp + wind,
-                          data = forestfires, method = "anova")
-rpart.plot(modelo_temp_wind, main = "Propagacion según temperatura y viento")
-summary(modelo_temp_wind)
+# ----------------------------------------------------------------------------
+# Analisis: ISI vs Viento
+# ----------------------------------------------------------------------------
+multi_reg_isi_wind <- lm(ISI ~ wind + FFMC + DMC + DC + RH + temp + area,
+                         data = forestfires)
+cat("\n--- Regresion Lineal Multiple: ISI ~ variables meteorologicas ---\n")
+print(summary(multi_reg_isi_wind))
 
+grafico_isi_wind <- graficar_dispersion_regresion(
+    datos = forestfires,
+    x_var = "wind",
+    y_var = "ISI",
+    modelo = multi_reg_isi_wind,
+    titulo = "Indice de Propagacion Inicial (ISI) vs Viento",
+    etiqueta_x = "Viento",
+    etiqueta_y = "ISI (propagacion del fuego)"
+)
+print(grafico_isi_wind)
 
-#Temperatura y Humedad
-multi_reg_temp_rh <- lm(temp ~ FFMC + DMC + DC + ISI + RH + wind + area, data = forestfires)
-summary(multi_reg_temp_rh)
-ggplot() +
-  geom_point(aes(x = forestfires$RH, y = forestfires$temp), colour = "red") +
-  geom_line(aes(x = forestfires$RH,
-                y = predict(multi_reg_temp_rh, newdata = forestfires)), colour = "blue") +
-  ggtitle("¿Cómo afecta la humedad a la temperatura? 🌡️💧") +
-  xlab("Humedad relativa (%)") +
-  ylab("Temperatura (°C)")
-# En climas más secos (RH baja), la temperatura tiende a ser más alta → mayor riesgo de incendio.
-# En climas menos secos (RH sube), la temperatura tiende a ser baja → menor riesgo de incendio.
+# ----------------------------------------------------------------------------
+# Maquinas de vectores de soporte (SVM): ISI ~ wind
+# ----------------------------------------------------------------------------
+svm_radial_isi_wind <- svm(ISI ~ wind, data = forestfires,
+                           type = "eps-regression", kernel = "radial")
+cat("\n--- SVM (kernel radial): ISI ~ wind ---\n")
+print(summary(svm_radial_isi_wind))
 
+svm_sigmoid_isi_wind <- svm(ISI ~ wind, data = forestfires,
+                            type = "eps-regression", kernel = "sigmoid")
+cat("\n--- SVM (kernel sigmoid): ISI ~ wind ---\n")
+print(summary(svm_sigmoid_isi_wind))
 
-#Maquina de vectores de soporte
-svm_radial_temp_rh <- svm(temp ~ RH,
-                          data = forestfires,
-                          type = "eps-regression",
-                          kernel = "radial")
-summary(svm_radial_temp_rh)#460
+# ----------------------------------------------------------------------------
+# Random Forest: ISI ~ wind
+# ----------------------------------------------------------------------------
+rf_isi_wind <- randomForest(ISI ~ wind, data = forestfires, ntree = 500)
+cat("\n--- Random Forest: ISI ~ wind ---\n")
+print(rf_isi_wind)
+plot(rf_isi_wind, main = "Random Forest: ISI ~ wind")
 
-svm_sigmoid_temp_rh <- svm(temp ~ RH,
-                           data = forestfires,
-                           type = "eps-regression",
-                           kernel = "sigmoid")
-summary(svm_sigmoid_temp_rh)#512
+# ----------------------------------------------------------------------------
+# Analisis: ISI vs FFMC
+# ----------------------------------------------------------------------------
+multi_reg_isi_ffmc <- lm(FFMC ~ ISI + DMC + DC + RH + temp + area,
+                         data = forestfires)
+cat("\n--- Regresion Lineal Multiple: FFMC ~ variables meteorologicas ---\n")
+print(summary(multi_reg_isi_ffmc))
 
-# Random Forest
-regression2 = randomForest(temp ~ RH,
-                           data = forestfires,  # Especificar el dataset completo
-                           ntree = 500)
-plot(regression2)
+grafico_isi_ffmc <- graficar_dispersion_regresion(
+    datos = forestfires,
+    x_var = "FFMC",
+    y_var = "ISI",
+    modelo = multi_reg_isi_ffmc,
+    titulo = "Indice de Propagacion Inicial (ISI) vs FFMC",
+    etiqueta_x = "FFMC (humedad del combustible fino)",
+    etiqueta_y = "ISI (indice de propagacion inicial)"
+)
+print(grafico_isi_ffmc)
 
-#Arbol de desicion
-modelo_arbol_temp_rh <- rpart(log(area + 1) ~ RH + temp,
-                              data = forestfires,
-                              method = "anova")
+# ----------------------------------------------------------------------------
+# Maquinas de vectores de soporte (SVM): ISI ~ FFMC
+# ----------------------------------------------------------------------------
+svm_radial_isi_ffmc <- svm(ISI ~ FFMC, data = forestfires,
+                           type = "eps-regression", kernel = "radial")
+cat("\n--- SVM (kernel radial): ISI ~ FFMC ---\n")
+print(summary(svm_radial_isi_ffmc))
 
-# Visualizar el árbol
-rpart.plot(modelo_arbol_temp_rh, main = "Propagación según temperatura y humedad 🌿🔥")
+svm_sigmoid_isi_ffmc <- svm(ISI ~ FFMC, data = forestfires,
+                            type = "eps-regression", kernel = "sigmoid")
+cat("\n--- SVM (kernel sigmoid): ISI ~ FFMC ---\n")
+print(summary(svm_sigmoid_isi_ffmc))
 
+# ----------------------------------------------------------------------------
+# Random Forest: ISI ~ FFMC
+# ----------------------------------------------------------------------------
+rf_isi_ffmc <- randomForest(ISI ~ FFMC, data = forestfires, ntree = 500)
+cat("\n--- Random Forest: ISI ~ FFMC ---\n")
+print(rf_isi_ffmc)
+plot(rf_isi_ffmc, main = "Random Forest: ISI ~ FFMC")
 
+# ----------------------------------------------------------------------------
+# Arbol de decision: log(area + 1) ~ FFMC + ISI
+# ----------------------------------------------------------------------------
+arbol_isi_ffmc <- rpart(log(area + 1) ~ FFMC + ISI,
+                        data = forestfires, method = "anova")
+cat("\n--- Arbol de decision: log(area + 1) ~ FFMC + ISI ---\n")
+print(summary(arbol_isi_ffmc))
+rpart.plot(arbol_isi_ffmc, main = "Propagacion segun FFMC e ISI")
 
-
-#ISI indice de propagacion inicial vs Wind viento 
-multi_reg_isi_wind <- lm(ISI ~ wind + FFMC + DMC + DC + RH + temp + area, data = forestfires)
-summary(multi_reg_isi_wind)
-ggplot() +
-  geom_point(aes(x = forestfires$wind, y = forestfires$ISI), colour = "red") +
-  geom_line(aes(x = forestfires$wind,
-                y = predict(multi_reg_isi_wind, newdata = forestfires)), colour = "blue") +
-  ggtitle("ISI vs Viento 🔥🌬️") +
-  xlab("Viento") +
-  ylab("ISI (propagación del fuego)")
-#A mayor velocidad del viento, las llamas se inclinan y el fuego se propaga más rápidamente.
-## A menor viento, el ISI suele ser bajo → el fuego se propaga más lentamente.
-
-#maquina de vectores de soporte
-svm_radial_isi_wind <- svm(ISI ~ wind, 
-                           data = forestfires, 
-                           type = "eps-regression", 
-                           kernel = "radial")
-summary(svm_radial_isi_wind)#456 vectores de soporte
-
-svm_sigmoid_isi_wind <- svm(ISI ~ wind, 
-                            data = forestfires, 
-                            type = "eps-regression", 
-                            kernel = "sigmoid")
-summary(svm_sigmoid_isi_wind)#500 vectores de soporte
-
-# Random Forest
-regression3 = randomForest(ISI ~ wind,
-                           data = forestfires,  # Especificar el dataset completo
-                           ntree = 500)
-plot(regression3)
-
-
-
-
-#FFMC humedada del combustible fino VS ISI Indice de propagacaion inicial
-multi_reg_isi_ffmc <- lm(FFMC ~ ISI + DMC + DC + RH + temp + area, data = forestfires)
-summary(multi_reg_isi_ffmc)
-ggplot() +
-  geom_point(aes(x = forestfires$FFMC, y = forestfires$ISI), colour = "red") +
-  geom_line(aes(x = forestfires$FFMC,
-                y = predict(multi_reg_isi_ffmc, newdata = forestfires)), colour = "blue") +
-  ggtitle("¿Cómo influye el FFMC en la propagación? 🌲🔥") +
-  xlab("FFMC humedad del combustible fino") +
-  ylab("ISI indice de propgacion inicial")
-#Un FFMC alto o combustibles flamables, combinado con viento fuerte, resultará en un ISI muy alto o una propagacion facil. 
-#Un FFMC bajo o combustibles flamables, combinado con viento fuerte, resultará en un ISI no alto o una propagacion facil. 
-
-
-#maquina de vectores de soporte
-svm_radial_isi_ffmc <- svm(ISI ~ FFMC, 
-                           data = forestfires, 
-                           type = "eps-regression", 
-                           kernel = "radial")
-summary(svm_radial_isi_ffmc)#438
-
-svm_sigmoid_isi_ffmc <- svm(ISI ~ FFMC, 
-                            data = forestfires, 
-                            type = "eps-regression", 
-                            kernel = "sigmoid")
-summary(svm_sigmoid_isi_ffmc)#514
-
-
-# Random Forest
- 
-regression4 = randomForest(ISI ~ FFMC,
-                           data = forestfires,  # Especificar el dataset completo
-                           ntree = 500)
-plot(regression4)
-
-modelo_arbol_isi_ffmc <- rpart(log(area + 1) ~ FFMC + ISI, data = forestfires, method = "anova")
-rpart.plot(modelo_arbol_isi_ffmc, main = "Propagación según FFMC e ISI")
-
-
+cat("\n=== Analisis completado ===\n")
