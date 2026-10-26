@@ -1,58 +1,59 @@
-# Laberinto de 72 estados
+# Laberinto de 72 Estados
 
-Práctica de Inteligencia Artificial en Prolog. Resuelve un laberinto de 72
-nodos haciendo una búsqueda en profundidad (DFS) sobre un grafo representado
-como lista de adyacencia.
+## A. Titulo del Proyecto y Resumen Ejecutivo
 
-## Cómo funciona
+Laberinto de 72 Estados es una implementacion de busqueda en profundidad (DFS) sobre un grafo de 72 nodos representado como lista de adyacencia, desarrollado en lenguaje Prolog. El sistema resuelve el problema de encontrar un camino entre un nodo inicial y un nodo final dentro de un grafo no dirigido, evitando ciclos mediante el registro de nodos ya visitados. Su alcance tecnologico se limita a la ejecucion local en el entorno SWI-Prolog, sin dependencias de red, base de datos ni componentes externos.
 
-El grafo es una lista de 72 listas. Cada elemento dice qué nodos son alcanzables
-desde ese nodo:
+## B. Arquitectura del Sistema
 
-```prolog
-[n1, n2, n3],       % desde n1 se llega a n2 y a n3
-[n2, n1, n5],       % desde n2 se llega a n1 y a n5
-...
-```
+El programa sigue una arquitectura de capas logicas basada en programacion logica. La entrada consiste en un identificador de nodo inicial, un identificador de nodo final y la definicion del grafo como lista de adyacencia. El motor de busqueda aplica el algoritmo de profundidad con backtracking: explora un camino hasta llegar al nodo destino o hasta agotar las opciones, momento en el cual retrocede al ultimo nodo con sucesores no visitados. El flujo de datos va de la definicion del grafo al predicado de busqueda, que devuelve una lista de nodos representando el camino encontrado, y finalmente se imprime la secuencia en consola.
 
-La búsqueda la hace `resolver/3`, que recibe el nodo inicial, el final y
-devuelve el camino:
+## C. Caracteristicas Tecnicas Clave
 
-```prolog
-resolver(n1, n72, Camino).
-```
+- Representacion de grafos mediante listas de adyacencia en Prolog.
+- Algoritmo de busqueda en profundidad (DFS) con backtracking para explorar el espacio de estados.
+- Mecanismo de evitacion de ciclos mediante verificacion de membresia en la lista de nodos visitados.
+- Persistencia limitada a la ejecucion en memoria; no se utiliza base de datos ni almacenamiento en disco.
+- Ausencia de mecanismos de concurrencia, procesamiento en tiempo real o red; es un programa de ejecucion secuencial y por lotes.
+- Seguridad limitada al ambito de ejecucion local; no maneja datos sensibles ni autenticacion.
 
-Se apoya en cuatro predicados:
+## D. Especificacion del Stack Tecnologico
 
-| Predicado | Función |
-|-----------|---------|
-| `resolver/3` | punto de entrada; llama a `busqueda/4` e invierte el resultado |
-| `busqueda/4` | envuelve la recursión y aplica `invertir/2` |
-| `camino1/5` | recursión de DFS; el camino se construye hacia atrás |
-| `sucesor_disp/4` | busca el siguiente nodo disponible, evitando repetir |
+| Categoria | Tecnologia / Librería |
+|-----------|----------------------|
+| Lenguaje | SWI-Prolog 8.x |
+| Paradigma | Programacion logica, busqueda en grafos, backtracking |
+| Entorno | SWI-Prolog 8.x |
 
-El corte se hace con `not(miembro(Y, P1))` dentro de `sucesor_disp/4`: un nodo
-que ya está en el camino actual no se vuelve a visitar, y así termina la
-exploración en vez de girar para siempre.
+## E. Guia de Instalacion, Configuracion y Despliegue
 
-`invertir/2` y `concatenar/3` son definiciones propias, sin usar los
-predicados de la biblioteca estándar, porque la práctica pide escribirlas a mano.
+### Requisitos previos del sistema
 
-## Cómo ejecutarlo
+- SWI-Prolog 8.x instalado en el sistema operativo.
+- Acceso a terminal o consola de comandos.
 
-Hace falta [SWI-Prolog](https://www.swi-prolog.org/).
+### Secuencia de comandos para clonacion e instalacion
 
 ```bash
-swipl laberinto72estados.pl
+git clone https://github.com/Matthew-Garay/72estados.git
+cd 72estados
 ```
 
-```prolog
-?- resolver(n1, n72, P).
-?- resolver(n30, n69, P).
+### Configuracion de variables de entorno
+
+Este proyecto no requiere archivo .env ni variables de entorno. Todo el comportamiento se configura dentro del archivo fuente `laberinto72estados.pl`.
+
+### Comandos para ejecucion en entorno de Desarrollo
+
+```bash
+swipl -s laberinto72estados.pl -g "main" -t "halt"
 ```
 
-## Nota sobre la codificación
+### Comandos para ejecucion en entorno de Produccion
 
-El archivo está en **UTF-8 sin BOM**. Venía en Windows-1252 con dos espacios
-duros (`0xA0`) dentro de la lista del grafo, en la línea 34 y en la 46. Prolog no
-trata el espacio duro como separador, así que la lista no se leía bien.
+No aplica entorno de produccion separado; el programa se ejecuta localmente con el mismo comando de desarrollo.
+
+## F. Creditos de Autoría
+
+Desarrollado por: Matthew Ilveneff Garay Pérez
+Correo Electronico: 1911.garay.perez@gmail.com
